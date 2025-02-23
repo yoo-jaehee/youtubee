@@ -3,28 +3,33 @@ import React from "react";
 import { useParams } from "react-router-dom";
 import VideoCard from "../components/VideoCard";
 import Youtube from "../api/youtube";
+import { useYoutubeApi } from "../context/YoutubeApiContext";
 
 export default function Videos() {
   const { keyword } = useParams();
+  const { youtube } = useYoutubeApi();
   const {
     isLoading,
     error,
     data: videos,
   } = useQuery({
-    queryKey: ["videos", keyword], // ✅ 데이터 요청 식별하는 고유한 키, keyword값이 변경될 때 마다 새로운 데이터 가져옴
-    queryFn: () => {
-      const youtube = new Youtube(); // FakeYoutube 객체 생성하고, search(keyword) 실행하여 데이터를 가져옴
-      return youtube.search(keyword); //실제 데이터를 가져오는 함수
-    },
+    queryKey: ["videos", keyword],
+    queryFn: () => youtube.search(keyword),
   });
+
+  const showError = () => {
+    if (error) {
+      console.log(error);
+      return <p>Something is wrong</p>;
+    }
+  };
 
   return (
     <>
-      <div>Videos {keyword ? `🔍${keyword}` : "🔥"} </div>
       {isLoading && <p>Loading...</p>}
-      {error && <p>Something is wrong</p>}
+      {error && showError()}
       {videos && (
-        <ul>
+        <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-2 gap-y-4">
           {videos.map((video) => (
             <VideoCard key={video.id} video={video} />
           ))}

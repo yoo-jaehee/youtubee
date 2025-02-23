@@ -1,60 +1,46 @@
-import axios from "axios";
-
 export default class Youtube {
-  constructor() {
-    this.httpClient = axios.create({
-      baseURL: "https://www.googleapis.com/youtube/v3",
-      params: { key: import.meta.env.VITE_YOUTUBE_API_KEY },
-    });
+  constructor(apiClient) {
+    this.apiClient = apiClient;
   }
 
   async search(keyword) {
     return keyword ? this.#searchByKeyword(keyword) : this.#mostPopular();
   }
 
+  async channelImageURL(id) {
+    return this.apiClient
+      .channels({ params: { part: "snippet", id: id } })
+      .then((res) => res.data.items[0].snippet.thumbnails.default.url);
+  }
+
+  async relatedVideos(id) {
+    return this.apiClient
+      .search({
+        params: {
+          part: "snippet",
+          maxResults: 25,
+          type: "video",
+          relatedTovideoId: id,
+        },
+      })
+      .then((res) =>
+        res.data.items.map((item) => ({ ...item, id: item.id.videoId }))
+      );
+  }
   async #searchByKeyword(keyword) {
-    const res = await this.httpClient.get("search", {
-      params: { part: "snippet", maxResults: 25, type: "video", q: keyword },
-    });
-    return res.data.items.map((item) => ({ ...item, id: item.id.videoId }));
+    return this.apiClient
+      .search({
+        params: { part: "snippet", maxResults: 25, type: "video", q: keyword },
+      })
+      .then((res) => res.data.items)
+      .then((items) => items.map((item) => ({ ...item, id: item.id.videoId })));
   }
 
   async #mostPopular() {
-    const res = await this.httpClient.get("videos", {
-      params: { part: "snippet", maxResults: 25, chart: "mostPopular" },
-    });
-    return res.data.items;
+    return this.apiClient
+      .videos({
+        params: { part: "snippet", maxResults: 25, chart: "mostPopular" },
+      })
+      .then((res) => res.data.items);
   }
 }
-
-// const { data } = await axios.get(
-//     `/videos/${keyword ? "search" : "popular"}.json`
-//   );
-//   return data.items;
-
-// const { data } = await axios.get(`/videos/search.json`);
-// return data.items;
-
-//   async #searchByKeyword(keyword) {
-//     return this.httpClient
-//       .get("search", {
-//         params: {
-//           part: "snippet",
-//           maxResults: 25,
-//           type: "video",
-//           q: keyword,
-//         },
-//       })
-//       .then((res) => res.data.items)
-//       .then((items) => items.map((item) => ({ ...item, id: item.id.videoId })));
-//   }
-
-// return this.httpClient
-//   .get("videos", {
-//     params: {
-//       part: "snippet",
-//       maxResults: 25,
-//       chart: "mostPopular",
-//     },
-//   })
-//   .then((res) => res.data.items);
